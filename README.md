@@ -14,7 +14,7 @@ A Go-based command-line tool for querying `crt.sh` to retrieve domain certificat
 To install the `crtsh-tool` CLI tool, use the following `go install` command:
 
 ```bash
-go install github.com/0xQRx/crtsh-tool/cmd/crtsh-tool@latest
+GOPRIVATE=github.com/0xQRx/crtsh-tool go install github.com/0xQRx/crtsh-tool/cmd/crtsh-tool@latest
 ```
 
 Ensure your `GOPATH/bin` directory is in your system's `PATH` so the installed binary can be accessed directly.
