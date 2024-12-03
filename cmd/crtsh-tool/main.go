@@ -1,7 +1,7 @@
 package main
 
 import (
-	import "github.com/0xQRx/crtsh-tool/pkg/crtsh"
+	"github.com/0xQRx/crtsh-tool/pkg/crtsh"
 	"flag"
 	"fmt"
 	"log"
