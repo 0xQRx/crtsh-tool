@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	//"os"
+	"time"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-const crtshURL = "https://crt.sh/?q="
+const crtshURL = "https://crt.sh/?deduplicate=Y&Identity="
 const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.199 Safari/537.36"
 
 // FetchDomains queries crt.sh and parses the results to return a slice of domains.
@@ -31,16 +31,41 @@ func FetchDomains(domain string) ([]string, error) {
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
 	req.Header.Set("Connection", "keep-alive")
 
-	// Perform the HTTP request
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("[DEBUG] Failed to make HTTP request: %v", err)
-	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("[DEBUG] Non-200 response: %d", resp.StatusCode)
+	// Retry intervals
+	waitIntervals := []time.Duration{
+		30 * time.Second,
+		1 * time.Minute,
+		2 * time.Minute,
 	}
+	
+	var resp *http.Response
+
+	// Attempt the request multiple times
+	for i, wait := range waitIntervals {
+		resp, err = client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("[DEBUG] Failed to make HTTP request: %v", err)
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			// 200 => break out of the retry loop
+			break
+		}
+
+		// If not 200, close body and either retry or return
+		resp.Body.Close()
+		if i < len(waitIntervals)-1 {
+			// Not the last attempt yet
+			fmt.Printf("[DEBUG] Non-200 response: %d, will retry in %v...\n", resp.StatusCode, wait)
+			time.Sleep(wait)
+		} else {
+			// Final attempt failed
+			return nil, fmt.Errorf("[DEBUG] Non-200 response: %d after final retry", resp.StatusCode)
+		}
+	}
+
+	defer resp.Body.Close()
 
 	//fmt.Printf("[DEBUG] HTTP request successful, status code: %d\n", resp.StatusCode)
 
